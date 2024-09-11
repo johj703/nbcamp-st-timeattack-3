@@ -1,35 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import "./App.css";
+import axios from "axios";
+import { useState } from "react";
+
+const fetchPosts = async () => {
+  const { data } = await axios.get("http://localhost:4000/posts");
+  console.log(data);
+  return data;
+};
+
+const addPost = async () => {
+  const { data } = await axios.post("http://localhost:3001/posts", newPost);
+  return data;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
+  const queryClient = useQueryClient();
+
+  const { data, isError, isLoading } = useQuery({
+    queryKey: ["posts"],
+    queryFn: fetchPosts,
+  });
+
+  const mutation = useMutation(addPost, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["posts"]);
+    },
+  });
+
+  const [title, setTitle] = useState("");
+  const [views, setViews] = useState("");
+
+  if (isError) {
+    return <div>에러가 일어났습니다.</div>;
+  }
+
+  if (isLoading) {
+    return <div>로딩중 입니다.</div>;
+  }
+
+  console.log(data[0].title);
+  console.log(data[0].views);
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      <h1>Posts</h1>
+      <form>
+        <input
+          type="text"
+          placeholder="타이틀"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="조회수"
+          value={views}
+          onChange={(e) => setViews(e.target.value)}
+        />
+        <button type="submit">게시글 추가</button>
+      </form>
+      <ul>
+        {data.map((post) => {
+          return (
+            <li key={post.id}>
+              <p>{post.title}</p>
+              <p>{post.views}</p>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
-export default App
+export default App;
